@@ -57,5 +57,11 @@
     "@types/node": "^22.8.6",
     "jest": "^29.7.0",
     "ts-jest": "^29.2.5"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
   }
 }

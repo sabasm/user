@@ -1,27 +1,10 @@
-// src/user/user.service.ts
+/**
+ * Service class for user operations.
+ * Provides methods for managing user entities with CRUD operations and pagination support.
+ */
 import { UserEntity } from './user.entity';
 import { IUserRepository } from '../interfaces/user.repository.interface';
-
-/**
- * Interface for pagination parameters
- */
-export interface PaginationParams {
-    page: number;
-    limit: number;
-}
-
-/**
- * Interface for paginated response
- */
-export interface PaginatedResponse<T> {
-    data: T[];
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
-    hasNext: boolean;
-    hasPrevious: boolean;
-}
+import { PaginationParams, PaginatedResponse } from '../types';
 
 /**
  * Service class for user operations.
@@ -31,7 +14,7 @@ export class UserService {
     /**
      * Creates a new instance of UserService
      * @param userRepository - Implementation of IUserRepository for data access
-     */
+    */
     constructor(private userRepository: IUserRepository) { }
 
     /**
