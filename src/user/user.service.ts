@@ -1,31 +1,18 @@
-/**
- * Service class for user operations.
- * Provides methods for managing user entities with CRUD operations and pagination support.
- */
+import { BaseCRUDService } from '@smendivil/crud';
 import { UserEntity } from './user.entity';
-import { IUserRepository } from '../interfaces/user.repository.interface';
+import { Injectable, Inject } from '@nestjs/common';
+import { ICRUDRepository } from '@smendivil/crud';
 import { PaginationParams, PaginatedResponse } from '../types';
 
-/**
- * Service class for user operations.
- * Provides methods for managing user entities with CRUD operations and pagination support.
- */
-export class UserService {
-    /**
-     * Creates a new instance of UserService
-     * @param userRepository - Implementation of IUserRepository for data access
-    */
-    constructor(private userRepository: IUserRepository) { }
+@Injectable()
+export class UserService extends BaseCRUDService<UserEntity> {
+    constructor(
+        @Inject('ICRUDRepository')
+        private readonly userRepository: ICRUDRepository<UserEntity>
+    ) {
+        super(userRepository);
+    }
 
-    /**
-     * Adds a new user to the system.
-     * @param username - User's username, must be unique
-     * @param email - User's email address, must be valid email format
-     * @param phoneNumber - User's phone number
-     * @param id - Optional user ID, if not provided a new one will be generated
-     * @returns Promise resolving to the newly created UserEntity
-     * @throws Error if username or email already exists
-     */
     async addUser(
         username: string,
         email: string,
@@ -33,70 +20,39 @@ export class UserService {
         id?: string
     ): Promise<UserEntity> {
         const user = new UserEntity(username, email, phoneNumber, id);
-        const savedData = await this.userRepository.addUser(user);
-        return UserEntity.fromData(savedData);
+        return await this.userRepository.create(user);
     }
 
-    /**
-     * Retrieves a user by their unique identifier.
-     * @param id - The unique identifier of the user
-     * @returns Promise resolving to UserEntity if found, null otherwise
-     */
     async getUserById(id: string): Promise<UserEntity | null> {
-        const data = await this.userRepository.getUserById(id);
-        return data ? UserEntity.fromData(data) : null;
+        return await this.userRepository.findById(id);
     }
 
-    /**
-     * Updates an existing user's information.
-     * @param id - The unique identifier of the user to update
-     * @param username - Optional new username
-     * @param email - Optional new email address
-     * @param phoneNumber - Optional new phone number
-     * @returns Promise resolving to the updated UserEntity if found, null otherwise
-     * @throws Error if new username or email conflicts with existing users
-     */
     async updateUser(
         id: string,
         username?: string,
         email?: string,
         phoneNumber?: string
     ): Promise<UserEntity | null> {
-        const existingData = await this.userRepository.getUserById(id);
-        if (existingData) {
-            const user = UserEntity.fromData(existingData);
-            if (username) user.username = username;
-            if (email) user.email = email;
-            if (phoneNumber) user.phoneNumber = phoneNumber;
-            user.updateTimestamp();
-            const updatedData = await this.userRepository.updateUser(user);
-            return UserEntity.fromData(updatedData);
-        }
-        return null;
+        const existingUser = await this.userRepository.findById(id);
+        if (!existingUser) return null;
+
+        const updates: Partial<UserEntity> = {};
+        if (username) updates.username = username;
+        if (email) updates.email = email;
+        if (phoneNumber) updates.phoneNumber = phoneNumber;
+
+        return await this.userRepository.update(id, updates);
     }
 
-    /**
-     * Removes a user from the system.
-     * @param id - The unique identifier of the user to delete
-     * @returns Promise resolving to true if user was deleted, false if user was not found
-     */
     async deleteUser(id: string): Promise<boolean> {
-        return await this.userRepository.deleteUser(id);
+        return await this.userRepository.delete(id);
     }
 
-    /**
-     * Retrieves a paginated list of users.
-     * @param params - Pagination parameters including page number and items per page
-     * @param params.page - The page number to retrieve (1-based)
-     * @param params.limit - The number of items per page
-     * @returns Promise resolving to a paginated response containing users and pagination metadata
-     * @throws Error if pagination parameters are invalid
-     */
     async getAllUsers(params: PaginationParams): Promise<PaginatedResponse<UserEntity>> {
         if (params.page < 1) throw new Error('Page must be greater than 0');
         if (params.limit < 1) throw new Error('Limit must be greater than 0');
 
-        const data = await this.userRepository.getAllUsers();
+        const data = await this.userRepository.findAll();
         const total = data.length;
         const totalPages = Math.ceil(total / params.limit);
         const startIndex = (params.page - 1) * params.limit;
@@ -104,7 +60,7 @@ export class UserService {
         const paginatedData = data.slice(startIndex, endIndex);
 
         return {
-            data: paginatedData.map(userData => UserEntity.fromData(userData)),
+            data: paginatedData,
             total,
             page: params.page,
             limit: params.limit,
@@ -114,3 +70,5 @@ export class UserService {
         };
     }
 }
+
+

@@ -1,14 +1,12 @@
+import { ICRUDRepository } from '@smendivil/crud';
 import { UserEntity } from '../user/user.entity';
 
-/**
- * Interface for user repository implementations.
- */
-export interface IUserRepository {
-    addUser(user: UserEntity): Promise<Partial<UserEntity>>;
-    getUserById(id: string): Promise<Partial<UserEntity> | null>;
-    updateUser(user: UserEntity): Promise<Partial<UserEntity>>;
+export interface IUserRepository extends ICRUDRepository<UserEntity> {
+    addUser(user: UserEntity): Promise<UserEntity>;
+    getUserById(id: string): Promise<UserEntity | null>;
+    updateUser(user: UserEntity): Promise<UserEntity | null>;
     deleteUser(id: string): Promise<boolean>;
-    getAllUsers(): Promise<Partial<UserEntity>[]>;
+    getAllUsers(): Promise<UserEntity[]>;
 }
 
 

@@ -1,35 +1,44 @@
 import { UserRepository } from './user.repository';
 import { UserEntity } from '../user/user.entity';
 
-/**
- * In-memory implementation of the user repository.
- * Useful for testing or development purposes.
- */
 export class InMemoryUserRepository extends UserRepository {
-    private users: Map<string, Partial<UserEntity>> = new Map();
+    private readonly entities: Map<string, UserEntity>;
 
-    async addUser(user: UserEntity): Promise<Partial<UserEntity>> {
-        const data = user.toData();
-        this.users.set(user.id, data);
-        return data;
+    constructor() {
+        super();
+        this.entities = new Map();
     }
 
-    async getUserById(id: string): Promise<Partial<UserEntity> | null> {
-        return this.users.get(id) || null;
+    protected async performCreate(entity: UserEntity): Promise<UserEntity> {
+        this.entities.set(entity.id, entity);
+        return entity;
     }
 
-    async updateUser(user: UserEntity): Promise<Partial<UserEntity>> {
-        const data = user.toData();
-        this.users.set(user.id, data);
-        return data;
+    protected async performUpdate(id: string, updates: Partial<UserEntity>): Promise<UserEntity | null> {
+        const existing = await this.performFindById(id);
+        if (!existing) return null;
+
+        const updated = Object.assign(new UserEntity(
+            existing.username,
+            existing.email,
+            existing.phoneNumber,
+            existing.id
+        ), updates);
+
+        this.entities.set(id, updated);
+        return updated;
     }
 
-    async deleteUser(id: string): Promise<boolean> {
-        return this.users.delete(id);
+    protected async performFindById(id: string): Promise<UserEntity | null> {
+        return this.entities.get(id) || null;
     }
 
-    async getAllUsers(): Promise<Partial<UserEntity>[]> {
-        return Array.from(this.users.values());
+    protected async performDelete(id: string): Promise<boolean> {
+        return this.entities.delete(id);
+    }
+
+    protected async performFindAll(params?: any): Promise<UserEntity[]> {
+        return Array.from(this.entities.values());
     }
 }
 

@@ -1,42 +1,53 @@
-import { UserRepository } from './user.repository';
+import { TypeORMCRUDRepository } from '@smendivil/crud';
 import { UserEntity } from '../user/user.entity';
-import { Repository } from 'typeorm';
+import { Repository, FindOptionsWhere } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
+import { UserRepository } from './user.repository';
 
-/**
- * TypeORM implementation of the user repository.
- */
 export class TypeORMUserRepository extends UserRepository {
+    private readonly typeormRepository: Repository<UserEntity>;
+
     constructor(
         @InjectRepository(UserEntity)
-        private readonly repository: Repository<UserEntity>,
+        repository: Repository<UserEntity>
     ) {
         super();
+        this.typeormRepository = repository;
     }
 
-    async addUser(user: UserEntity): Promise<Partial<UserEntity>> {
-        const savedUser = await this.repository.save(user);
-        return savedUser.toData();
+    protected async performCreate(entity: UserEntity): Promise<UserEntity> {
+        return this.typeormRepository.save(entity);
     }
 
-    async getUserById(id: string): Promise<Partial<UserEntity> | null> {
-        const user = await this.repository.findOne({ where: { id } });
-        return user ? user.toData() : null;
+    protected async performUpdate(id: string, updates: Partial<UserEntity>): Promise<UserEntity | null> {
+        const where = { id } as FindOptionsWhere<UserEntity>;
+        await this.typeormRepository.update(where, updates);
+        return this.performFindById(id);
     }
 
-    async updateUser(user: UserEntity): Promise<Partial<UserEntity>> {
-        const updatedUser = await this.repository.save(user);
-        return updatedUser.toData();
+    protected async performFindById(id: string): Promise<UserEntity | null> {
+        return this.typeormRepository.findOne({
+            where: { id } as FindOptionsWhere<UserEntity>
+        });
     }
 
-    async deleteUser(id: string): Promise<boolean> {
-        const result = await this.repository.delete(id);
-        return result.affected !== 0;
+    protected async performDelete(id: string): Promise<boolean> {
+        const result = await this.typeormRepository.delete({ id } as FindOptionsWhere<UserEntity>);
+        return !!result.affected;
     }
 
-    async getAllUsers(): Promise<Partial<UserEntity>[]> {
-        const users = await this.repository.find();
-        return users.map(user => user.toData());
+    protected async performFindAll(params?: any): Promise<UserEntity[]> {
+        return this.typeormRepository.find(params);
+    }
+
+    static provideEntity() {
+        return {
+            provide: 'ICRUDRepository',
+            useFactory: (repository: Repository<UserEntity>) => {
+                return new TypeORMUserRepository(repository);
+            },
+            inject: [InjectRepository(UserEntity)],
+        };
     }
 }
 
